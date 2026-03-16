@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Res/aures.png</file>
+        <file>Res/eval_miccanvasz_geom.png</file>
+    </qresource>
+</RCC>
