@@ -16,87 +16,73 @@
 ///////////////////////////////////////////////////////////////////////////////////
 
 /*
-AsrModel.h
+WeightsThread.h
 
-This file contains the definitions for the Automatic Speech Recognition model.
+This file contains the definitions for the weights compute thread.
 */
 
-#ifndef AsrModel_h
-#define AsrModel_h
+#ifndef WeightsThread_h
+#define WeightsThread_h
 
-#include "vosk_api.h"
+#include "Beamforming.h"
+#include "MicArray.h"
+#include "MultiSourceHandler.h"
+#include "Numeric.h"
 
-#include <cstdint>
-#include <map>
-#include <string>
+#include <array>
+
+#include <QMutex>
+#include <QThread>
+#include <QWaitCondition>
 
 
 //************************************************************************
-// Class for handling the Automatic Speech Recognition model
+// Class for handling the weights compute thread
 //************************************************************************
-class AsrModel
+class WeightsThread : public QThread
 {
+    Q_OBJECT
+
     //************************************************************************
     // constants and types
     //************************************************************************
-    public:
-        typedef enum : uint8_t
-        {
-            LANGUAGE_ARABIC,
-            LANGUAGE_CHINESE,
-            LANGUAGE_DUTCH,
-            LANGUAGE_ENGLISH,
-            LANGUAGE_FARSI,
-            LANGUAGE_FRENCH,
-            LANGUAGE_GERMAN,
-            LANGUAGE_ITALIAN,
-            LANGUAGE_JAPANESE,
-            LANGUAGE_KOREAN,
-            LANGUAGE_SPANISH,
-            LANGUAGE_PORTUGUESE,
-
-            // keep this last
-            LANGUAGE_COUNT
-        }Language;
-
-        static const std::map<Language, std::string> LANGUAGE_NAMES;
+    private:
+        static constexpr std::array<double, MultiSourceHandler::MAX_NR_OF_SPEAKERS> RAD_APOD_FACTOR_VEC =
+                 { 1.0, 1.25, 1.0, 1.125612, 1.358720, 1.593176, 1.831110 }; //!< vector with factors for radial apodization
 
 
     //************************************************************************
     // functions
     //************************************************************************
     public:
-        AsrModel
+        WeightsThread
             (
-            Language aLanguage      //!< language model
+            QObject* aParent = nullptr              //!< parent object
             );
 
-        ~AsrModel();
+        ~WeightsThread();
 
-        static AsrModel* getInstance
+        void compute
             (
-            Language aLanguage      //!< language model
-            );      
-
-        uint8_t decLanguageCounter
-            (
-            const Language aLanguage    //!< language
+            Beamforming::BeampatternConfig  aBeampatternConfig, //!< configuration data
+            MicArray                        aMicArray,          //!< microphone array
+            int                             aIndex              //!< index
             );
 
-        static void destroyInstance();
+    protected:
+        void run() override;
 
-        Language getLanguage() const;
-
-        uint8_t getLanguageCounter
+    private:
+        double getRadialApodizationFactor
             (
-            Language aLanguage      //!< language model
+            const size_t aNrOfMics      //!< number of microphones
             ) const;
 
-        VoskModel* getModel();
-
-        uint8_t incLanguageCounter
+    signals:
+        void weightsComputeDone
             (
-            const Language aLanguage    //!< language
+            CxMatrix aWeightsValues,    //!< weights values
+            int      aIndex             //!< index
             );
 
 
@@ -104,11 +90,15 @@ class AsrModel
     // variables
     //************************************************************************
     private:
-        static AsrModel*                    sInstance;      //!< singleton
+        QMutex              mMutex;             //!< mutex
+        QWaitCondition      mWaitCondition;     //!< wait condition
 
-        static Language                     sLanguage;      //!< language model
-        static VoskModel*                   sModel;         //!< ASR model
-        static std::map<Language, uint8_t>  sLanguageMap;   //!< language map
+        Beamforming::BeampatternConfig  mBeampatternConfig; //!< configuration data
+        MicArray            mMicArray;          //!< microphone array
+        int                 mIndex;             //!< index
+
+        bool                mIsRestarting;      //!< true if restarting
+        bool                mIsAborting;        //!< true if aborting
 };
 
-#endif // AsrModel_h
+#endif // WeightsThread_h

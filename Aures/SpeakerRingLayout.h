@@ -16,55 +16,52 @@
 ///////////////////////////////////////////////////////////////////////////////////
 
 /*
-main.cpp
+SpeakerRingLayout.h
 
-This file contains the main application for acoustics.
+This file contains the definitions for the speaker ring layout.
 */
 
-#include "Aures.h"
-#include "AudioChannelData.h"
+#ifndef SpeakerRingLayout_h
+#define SpeakerRingLayout_h
+
 #include "MicArray.h"
-#include "Numeric.h"
-#include "VoiceActivityDetection.h"
 
-#if BUILD_ROS
-    #include <rclcpp/rclcpp.hpp>
-#endif
-
-#include <QApplication>
+#include <QDial>
 
 
-//!************************************************************************
-//! Main application
-//!
-//! @returns: code returned by QApplication exec
-//!************************************************************************
-int main
-    (
-    int     argc,   //!< argument count
-    char*   argv[]  //!< argument vector
-    )
+//************************************************************************
+// Class for handling the speaker ring layout
+//************************************************************************
+class SpeakerRingLayout : public QDial
 {
-    qRegisterMetaType<AudioChannelData>( "AudioChannelData" );
-    qRegisterMetaType<ChannelValueDouble>( "ChannelValueDouble" );
-    qRegisterMetaType<CxVector>( "CxVector" );
-    qRegisterMetaType<CxMatrix>( "CxMatrix" );
-    qRegisterMetaType<Cx3Matrix>( "Cx3Matrix" );
-    qRegisterMetaType<MicArray>( "MicArray" );
-    qRegisterMetaType<VoiceActivityDetection::Source>( "VoiceActivityDetection::Source" );
+    Q_OBJECT
 
-#if BUILD_ROS
-    rclcpp::init( argc, argv );
-#endif
+    //************************************************************************
+    // constants and types
+    //************************************************************************
+    public:
+        explicit SpeakerRingLayout
+            (
+            QWidget*    aParent = nullptr    //!< parent widget
+            );
 
-    QApplication a( argc, argv );
-    Aures w;
-    w.show();
-    int retVal = a.exec();
+        void updateMicArray
+            (
+            MicArray    aMicArray   //!< mic array
+            );
 
-#if BUILD_ROS
-    rclcpp::shutdown();
-#endif
+    protected:
+        void paintEvent
+            (
+            QPaintEvent*    aEvent  //!< paint event
+            ) override;
 
-    return retVal;
-}
+
+    //************************************************************************
+    // variables
+    //************************************************************************
+    private:
+        MicArray    mMicArray;          //!< microphone array
+};
+
+#endif // SpeakerRingLayout_h

@@ -16,25 +16,27 @@
 ///////////////////////////////////////////////////////////////////////////////////
 
 /*
-AsrRecognizer.h
+BeampatternThread.h
 
-This file contains the definitions for the Automatic Speech Recognition recognizer.
+This file contains the definitions for the beampattern compute thread.
 */
 
-#ifndef AsrRecognizer_h
-#define AsrRecognizer_h
+#ifndef BeampatternThread_h
+#define BeampatternThread_h
 
-#include "vosk_api.h"
+#include "Beamforming.h"
+#include "MicArray.h"
+#include "Numeric.h"
 
-#include "AsrModel.h"
-
-#include <QObject>
+#include <QMutex>
+#include <QThread>
+#include <QWaitCondition>
 
 
 //************************************************************************
-// Class for handling the Automatic Speech Recognition recognizer
+// Class for handling the beampattern compute thread
 //************************************************************************
-class AsrRecognizer : public QObject
+class BeampatternThread : public QThread
 {
     Q_OBJECT
 
@@ -42,31 +44,41 @@ class AsrRecognizer : public QObject
     // functions
     //************************************************************************
     public:
-        AsrRecognizer
+        BeampatternThread
             (
-            AsrModel::Language aLanguage    //!< model language
+            QObject* aParent = nullptr              //!< parent object
             );
 
-        ~AsrRecognizer();
+        ~BeampatternThread();
 
-        VoskRecognizer* getVoskRecognizer();
-
-        bool setLanguage
+        void compute
             (
-            AsrModel::Language aLanguage    //!< language
+            Beamforming::BeampatternConfig  aBeampatternConfig, //!< configuration data
+            MicArray                        aMicArray           //!< microphone array
             );
+
+    protected:
+        void run() override;
 
     signals:
-        void changedRecognizer();
+        void beampatternComputeDone
+            (
+            CxVector aBeampatternCxValues   //!< beampattern values
+            );
 
 
     //************************************************************************
     // variables
     //************************************************************************
     private:
-        AsrModel::Language  mLanguage;          //!< language
-        AsrModel*           mAsrModelInstance;  //!< ASR model instance
-        VoskRecognizer*     mVoskRecognizer;    //!< VOSK ASR recognizer
+        QMutex          mMutex;             //!< mutex
+        QWaitCondition  mWaitCondition;     //!< wait condition
+
+        Beamforming::BeampatternConfig  mBeampatternConfig; //!< configuration data
+        MicArray        mMicArray;          //!< microphone array
+
+        bool            mIsRestarting;      //!< true if restarting
+        bool            mIsAborting;        //!< true if aborting
 };
 
-#endif // AsrRecognizer_h
+#endif // BeampatternThread_h

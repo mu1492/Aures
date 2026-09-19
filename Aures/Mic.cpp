@@ -22,6 +22,7 @@ This file contains the sources for a microphone.
 */
 
 #include "Mic.h"
+#include "AcousticsHandler.h"
 
 #include <cstring>
 
@@ -37,12 +38,15 @@ Mic::Mic
     double          aSnr,               //!< SNR [dBA]
     double          aAop                //!< AOP [dB SPL]
     )
-    : mThd( 0 )
+    : mLabel( 0 )
+    , mInUse( true )
+    , mCcaLocation( CCA_LOCATION_UNKNOWN )
+    , mThd( 0 )
     , mSensitivity( -100 )
     , mSnr( 0 )
     , mAop( 0 )
 {
-    memset( &mLocation, 0, sizeof( mLocation ) );
+    memset( &mXyzLocation, 0, sizeof( mXyzLocation ) );
 
     if( aFrequencyRange.fmin > 0
      && aFrequencyRange.fmax > aFrequencyRange.fmin )
@@ -74,7 +78,7 @@ Mic::Mic
         mAop = aAop;
     }
 
-    mEin = REF_SPL - mSnr;
+    mEin = AcousticsHandler::REF_SPL - mSnr;
     mNf = mSensitivity - mSnr;
     mDynRng = mAop - mEin;
 }
@@ -88,6 +92,17 @@ Mic::Mic
 double Mic::getAop() const
 {
     return mAop;
+}
+
+
+//!************************************************************************
+//! Get the Circular Concentric Array location
+//!
+//! @returns The CCA mic location
+//!************************************************************************
+Mic::CcaLocation Mic::getCcaLocation() const
+{
+    return mCcaLocation;
 }
 
 
@@ -114,13 +129,13 @@ double Mic::getEin() const
 
 
 //!************************************************************************
-//! Get the 3D location
+//! Get the integer label that matches EVAL-MICCANVASZ numbering
 //!
-//! @returns The 3D mic location
+//! @returns nothing
 //!************************************************************************
-Mic::Location Mic::getLocation() const
+int Mic::getLabel() const
 {
-    return mLocation;
+    return mLabel;
 }
 
 
@@ -158,14 +173,81 @@ double Mic::getSnr() const
 
 
 //!************************************************************************
+//! Get the 3D location
+//!
+//! @returns The 3D mic location
+//!************************************************************************
+Mic::XyzLocation Mic::getXyzLocation() const
+{
+    return mXyzLocation;
+}
+
+
+//!************************************************************************
+//! Get the in use status
+//!
+//! @returns true if the mic is actively used in the array
+//!************************************************************************
+bool Mic::isInUse() const
+{
+    return mInUse;
+}
+
+
+//!************************************************************************
+//! Set the CCA location
+//!
+//! @returns nothing
+//!************************************************************************
+void Mic::setCcaLocation
+    (
+    const CcaLocation  aCcaLocation      //!< CCA location
+    )
+{
+    if( aCcaLocation < CCA_LOCATION_MAX_KNOWN )
+    {
+        mCcaLocation = aCcaLocation;
+    }
+}
+
+
+//!************************************************************************
+//! Set the in use status
+//!
+//! @returns nothing
+//!************************************************************************
+void Mic::setInUse
+    (
+    const bool aStatus                  //!< in use status
+    )
+{
+    mInUse = aStatus;
+}
+
+
+//!************************************************************************
+//! Set the integer label that matches EVAL-MICCANVASZ numbering
+//!
+//! @returns nothing
+//!************************************************************************
+void Mic::setLabel
+    (
+    const int aLabel                    //!< label
+    )
+{
+    mLabel = aLabel;
+}
+
+
+//!************************************************************************
 //! Set the 3D location
 //!
 //! @returns nothing
 //!************************************************************************
-void Mic::setLocation
+void Mic::setXyzLocation
     (
-    const Location  aLocation      //!< xyz location
+    const XyzLocation  aXyzLocation      //!< xyz location
     )
 {
-    memcpy( &mLocation, &aLocation, sizeof( mLocation ) );
+    memcpy( &mXyzLocation, &aXyzLocation, sizeof( mXyzLocation ) );
 }

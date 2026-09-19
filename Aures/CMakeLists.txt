@@ -10,7 +10,7 @@ endif()
 #########################
 # Project config
 #########################
-set(USE_ROS OFF)
+set(USE_CUDA ON)
 
 set(USE_JETSON_ORIN_NANO ON)
 set(USE_JETSON_AGX_ORIN OFF)
@@ -22,9 +22,15 @@ elseif( USE_JETSON_ORIN_NANO AND USE_JETSON_AGX_ORIN )
     message( FATAL_ERROR "Multiple Jetson platforms are not supported." )
 endif()
 
+set(USE_ROS OFF)
+
 #########################
 # Build defines
 #########################
+if(USE_CUDA)
+    add_definitions( -DBUILD_CUDA=1 )
+endif()
+
 if(USE_ROS)
     add_definitions( -DBUILD_ROS=1 )
 endif()
@@ -121,6 +127,8 @@ list(APPEND PRJ_SOURCES_LIST
         Aures.ui
         Aures.qrc
         About.ui
+        AcousticsHandler.cpp
+        AcousticsHandler.h
         Mic.cpp
         Mic.h
         Ics52000.cpp
@@ -128,8 +136,39 @@ list(APPEND PRJ_SOURCES_LIST
         MicArray.cpp
         MicArray.h
         AudioChannelData.h
-        AudioCaptureThread.cpp
-        AudioCaptureThread.h
+        RawSignalHandler.cpp
+        RawSignalHandler.h
+        RawSignalWorker.cpp
+        RawSignalWorker.h
+        VoiceActivityDetection.cpp
+        VoiceActivityDetection.h
+        Beamforming.cpp
+        Beamforming.h
+        MultiSourceHandler.cpp
+        MultiSourceHandler.h
+        Numeric.cpp
+        Numeric.h
+        MicBoardRms.ui
+        FrequencyAnalysis.cpp
+        FrequencyAnalysis.h
+        FftThread.cpp
+        FftThread.h
+        WindowFunction.cpp
+        WindowFunction.h
+        SignalProcessingWorker.cpp
+        SignalProcessingWorker.h
+        RnnComputeThread.cpp
+        RnnComputeThread.h
+        SpeakerRingLayout.cpp
+        SpeakerRingLayout.h
+        MicArrayConfigThread.cpp
+        MicArrayConfigThread.h
+        BeampatternLayout.cpp
+        BeampatternLayout.h
+        BeampatternThread.cpp
+        BeampatternThread.h
+        WeightsThread.cpp
+        WeightsThread.h
         AsrModel.cpp
         AsrModel.h
         AsrRecognizer.cpp
@@ -138,13 +177,8 @@ list(APPEND PRJ_SOURCES_LIST
         AsrHandler.h
         AsrThread.cpp
         AsrThread.h
-        RawSignalHandler.cpp
-        RawSignalHandler.h
-        RawSignalWorker.cpp
-        RawSignalWorker.h
-        Numeric.cpp
-        Numeric.h
-        MicBoard.ui
+        AudioCaptureThread.cpp
+        AudioCaptureThread.h
         cuMl.cu
         cuMl.hpp
         )
@@ -177,6 +211,7 @@ target_compile_options(Aures PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
 
 set(AUDIO_LIBRARIES "libasound.so" "libvosk.so")
 set(CUDA_LIBRARIES "libcuda.so" "libcudart.so" "libcublas.so" "libcusparse.so" "libcurand.so" "libcusolver.so" "libcufft.so")
+
 if(NOT USE_ROS)
     target_link_libraries(Aures PRIVATE  Qt${QT_VERSION_MAJOR}::Widgets
                                          Qt${QT_VERSION_MAJOR}::OpenGL

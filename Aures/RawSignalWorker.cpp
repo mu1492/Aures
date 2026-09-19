@@ -50,6 +50,8 @@ RawSignalWorker::RawSignalWorker
     AudioChannelData aData  //!< new data
     )
 {
+    // there are exactly MicArray::TOTAL_MICS_COUNT (=15) raw signal workers
+    //     0...14    ==     (1...15)    - 1
     if( mWorkerIndex == ( aData.channel - 1 ) )
     {
         QList<double> periodDataList = aData.data;

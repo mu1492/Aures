@@ -24,7 +24,7 @@ This file contains the definitions for a microphone.
 #ifndef Mic_h
 #define Mic_h
 
-#include <cmath>
+#include <cstdint>
 
 
 //************************************************************************
@@ -36,21 +36,30 @@ class Mic
     // constants and types
     //************************************************************************
     public:
+        // Circular Concentric Array (CCA) context
+        typedef enum : uint8_t
+        {
+            CCA_LOCATION_UNKNOWN,
+            CCA_LOCATION_OUTER_CIRCLE,
+            CCA_LOCATION_INNER_CIRCLE,
+            CCA_LOCATION_CENTER,
+
+            CCA_LOCATION_MAX_KNOWN
+        }CcaLocation;
+
+        // 3D context
         typedef struct
         {
             double x;       //!< x coordinate [m]
             double y;       //!< y coordinate [m]
             double z;       //!< z coordinate [m]
-        }Location;
+        }XyzLocation;
 
         typedef struct
         {
             double fmin;    //!< fmin [Hz]
             double fmax;    //!< fmax [Hz]
         }FreqRange3db;
-
-    private:
-        static constexpr double REF_SPL = 20.0 * log10( 1.0 / 20.e-6 );     //!< 94 dB
 
 
     //************************************************************************
@@ -68,11 +77,15 @@ class Mic
 
         double getAop() const;
 
+        CcaLocation getCcaLocation() const;
+
         double getDynRng() const;
 
         double getEin() const;
 
-        Location getLocation() const;
+        int getLabel() const;
+
+        XyzLocation getXyzLocation() const;
 
         double getNf() const;
 
@@ -80,9 +93,26 @@ class Mic
 
         double getSnr() const;
 
-        void setLocation
+        bool isInUse() const;
+
+        void setCcaLocation
             (
-            const Location  aLocation   //!< xyz location
+            const CcaLocation   aCcaLocation    //!< CCA location
+            );
+
+        void setInUse
+            (
+            const bool aStatus                  //!< in use status
+            );
+
+        void setLabel
+            (
+            const int aLabel                    //!< label
+            );
+
+        void setXyzLocation
+            (
+            const XyzLocation   aXyzLocation    //!< xyz location
             );
 
 
@@ -90,7 +120,11 @@ class Mic
     // variables
     //************************************************************************
     protected:
-        Location        mLocation;          //!< xyz location
+        int             mLabel;             //!< label as per EVAL-MICCANVASZ
+        bool            mInUse;             //!< true if actively used in the array
+
+        XyzLocation     mXyzLocation;       //!< xyz location
+        CcaLocation     mCcaLocation;       //!< CCA location
 
         FreqRange3db    mFrequencyRange;    //!< fmin-fmax [Hz]
         double          mThd;               //!< THD [0..1] [-]

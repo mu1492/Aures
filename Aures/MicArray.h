@@ -25,10 +25,13 @@ This file contains the definitions for the microphone array.
 #define MicArray_h
 
 #include "Ics52000.h"
+#include "Numeric.h"
 
 #include <cmath>
 #include <cstdint>
 #include <vector>
+
+#include <QMetaType>
 
 
 //************************************************************************
@@ -38,10 +41,8 @@ class MicArray
 {
     //************************************************************************
     // constants and types
-    //************************************************************************
-    private:
-        static constexpr double PI = 4.0 * atan( 1.0 );
-
+    //************************************************************************    
+    public:
         // EVAL-MICCANVASZ geometry
         // https://www.analog.com/en/resources/evaluation-hardware-and-software/evaluation-boards-kits/eval-miccanvasz.html
         //
@@ -53,21 +54,30 @@ class MicArray
         //      6           4
         //          13  12
         //                              x
-        //   7   14   15   11   3  ----->
-        //
+        //   7   14   15   11   3  ----->     DOA = 0 [rad]
+        //                                    (Direction Of Arrival)
         //          9   10
         //      8           2
         //            1
         //
-        static constexpr double OUTER_RADIUS = 0.02;    // [m]
-        static constexpr double INNER_RADIUS = 0.01;    // [m]
 
-        static const uint8_t TOTAL_MICS_COUNT = 15;
-        static const uint8_t OUTER_MICS_COUNT = 8;
-        static const uint8_t INNER_MICS_COUNT = 6;
+        // UCA - Uniform Circular Array
+        typedef struct
+        {
+            double radius;      //!< radius [m]
+            uint8_t micsCount;  //!< number of microphones
+        }Uca;
 
-        static constexpr double OUTER_START_ANGLE = -PI / 2.0;       // [rad]
-        static constexpr double INNER_START_ANGLE = -PI * 2.0 / 3.0; // [rad]
+        static constexpr Uca OUTER_CIRCLE = { 0.02, 8 };
+        static constexpr Uca INNER_CIRCLE = { 0.01, 6 };
+
+        static const uint8_t TOTAL_MICS_COUNT = OUTER_CIRCLE.micsCount
+                                              + INNER_CIRCLE.micsCount
+                                              + 1;
+
+    private:
+        static constexpr double OUTER_START_ANGLE = -Numeric::PI / 2.0;       // [rad]
+        static constexpr double INNER_START_ANGLE = -Numeric::PI * 2.0 / 3.0; // [rad]
 
 
     //************************************************************************
@@ -76,23 +86,62 @@ class MicArray
     public:
         MicArray();
 
-        static MicArray* getInstance();
+        bool addSingleMic
+            (
+            const size_t aIndex         //!< mic index [0 .. TOTAL_MICS_COUNT-1]
+            );
 
-        static void destroyInstance();
+        void clearArray();
+
+        void createFullGeometry();
 
         std::vector<Ics52000> getArray() const;
 
-    private:
-        void createGeometry();
+        std::vector<Mic::XyzLocation> getGeometry() const;
+
+        double getMaxRadius() const;
+
+        std::vector<size_t> getMicIndexes() const;
+
+        double getRadius
+            (
+            const size_t aIndex         //!< mic index
+            ) const;
+
+        bool isInUse
+            (
+            const size_t aIndex         //!< mic index
+            );
+
+        bool isOnOuterCircle
+            (
+            const size_t aIndex         //!< mic index
+            ) const;
+
+        bool isOnInnerCircle
+            (
+            const size_t aIndex         //!< mic index
+            ) const;
+
+        bool isOnCenter
+            (
+            const size_t aIndex         //!< mic index
+            ) const;
+
+        bool setInUse
+            (
+            const size_t    aIndex,     //!< mic index
+            const bool      aStatus     //!< in use status
+            );
 
 
     //************************************************************************
     // variables
     //************************************************************************
     private:
-        static MicArray*        sInstance;      //!< singleton
-
         std::vector<Ics52000>   mMicArray;      //!< mic array
 };
+
+Q_DECLARE_METATYPE( MicArray )
 
 #endif // MicArray_h

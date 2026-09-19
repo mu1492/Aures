@@ -16,25 +16,23 @@
 ///////////////////////////////////////////////////////////////////////////////////
 
 /*
-AsrRecognizer.h
+SignalProcessingWorker.h
 
-This file contains the definitions for the Automatic Speech Recognition recognizer.
+This file contains the definitions for the signal processing worker.
 */
 
-#ifndef AsrRecognizer_h
-#define AsrRecognizer_h
-
-#include "vosk_api.h"
-
-#include "AsrModel.h"
+#ifndef SignalProcessingWorker_h
+#define SignalProcessingWorker_h
 
 #include <QObject>
 
+#include <atomic>
+
 
 //************************************************************************
-// Class for handling the Automatic Speech Recognition recognizer
+// Class for handling the signal processing worker
 //************************************************************************
-class AsrRecognizer : public QObject
+class SignalProcessingWorker : public QObject
 {
     Q_OBJECT
 
@@ -42,31 +40,32 @@ class AsrRecognizer : public QObject
     // functions
     //************************************************************************
     public:
-        AsrRecognizer
+        explicit SignalProcessingWorker
             (
-            AsrModel::Language aLanguage    //!< model language
+            size_t      aWorkerIndex,       //!< worker index
+            QObject*    aParent = nullptr   //!< parent
             );
 
-        ~AsrRecognizer();
+        bool isPaused();
 
-        VoskRecognizer* getVoskRecognizer();
-
-        bool setLanguage
+        void processNewSpectrum
             (
-            AsrModel::Language aLanguage    //!< language
+            int aIndex              //!< index
             );
 
-    signals:
-        void changedRecognizer();
+        void setPaused
+            (
+            bool aState             //!< state
+            );
 
 
     //************************************************************************
     // variables
     //************************************************************************
     private:
-        AsrModel::Language  mLanguage;          //!< language
-        AsrModel*           mAsrModelInstance;  //!< ASR model instance
-        VoskRecognizer*     mVoskRecognizer;    //!< VOSK ASR recognizer
+        size_t           mWorkerIndex;  //!< worker index
+
+        std::atomic_bool mIsPaused;     //!< paused status
 };
 
-#endif // AsrRecognizer_h
+#endif // SignalProcessingWorker_h

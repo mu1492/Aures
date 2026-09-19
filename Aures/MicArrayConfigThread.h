@@ -16,25 +16,28 @@
 ///////////////////////////////////////////////////////////////////////////////////
 
 /*
-AsrRecognizer.h
+MicArrayConfigThread.h
 
-This file contains the definitions for the Automatic Speech Recognition recognizer.
+This file contains the definitions for the microphone array configuration thread.
 */
 
-#ifndef AsrRecognizer_h
-#define AsrRecognizer_h
+#ifndef MicArrayConfigThread_h
+#define MicArrayConfigThread_h
 
-#include "vosk_api.h"
+#include "AcousticsHandler.h"
+#include "MicArray.h"
 
-#include "AsrModel.h"
+#include <cstdint>
 
-#include <QObject>
+#include <QMutex>
+#include <QThread>
+#include <QWaitCondition>
 
 
 //************************************************************************
-// Class for handling the Automatic Speech Recognition recognizer
+// Class for handling the microphone array configuration thread
 //************************************************************************
-class AsrRecognizer : public QObject
+class MicArrayConfigThread : public QThread
 {
     Q_OBJECT
 
@@ -42,31 +45,43 @@ class AsrRecognizer : public QObject
     // functions
     //************************************************************************
     public:
-        AsrRecognizer
+        MicArrayConfigThread
             (
-            AsrModel::Language aLanguage    //!< model language
+            QObject* aParent = nullptr              //!< parent object
             );
 
-        ~AsrRecognizer();
+        ~MicArrayConfigThread();
 
-        VoskRecognizer* getVoskRecognizer();
-
-        bool setLanguage
+        void compute
             (
-            AsrModel::Language aLanguage    //!< language
+            uint8_t                             aNrOfSpeakers,  //!< number of speakers
+            double                              aAngle,         //!< angle of first speeker
+            AcousticsHandler::FrequencyRange    aFrequencyRange //!< frequency range
             );
+
+    protected:
+        void run() override;
 
     signals:
-        void changedRecognizer();
+        void micArrayConfigComputeDone
+            (
+            MicArray   aMicArray   //!< microphone array
+            );
 
 
     //************************************************************************
     // variables
     //************************************************************************
     private:
-        AsrModel::Language  mLanguage;          //!< language
-        AsrModel*           mAsrModelInstance;  //!< ASR model instance
-        VoskRecognizer*     mVoskRecognizer;    //!< VOSK ASR recognizer
+        QMutex          mMutex;             //!< mutex
+        QWaitCondition  mWaitCondition;     //!< wait condition
+
+        uint8_t         mNrOfSpeakers;      //!< number of speakers
+        double          mFirstSpeakerAngle; //!< angle [rad] of the 1st speaker related to mic 5, trigonometric sense
+        AcousticsHandler::FrequencyRange    mFrequencyRange; //!< frequency range
+
+        bool            mIsRestarting;      //!< true if restarting
+        bool            mIsAborting;        //!< true if aborting
 };
 
-#endif // AsrRecognizer_h
+#endif // MicArrayConfigThread_h

@@ -22,7 +22,9 @@ This file contains the sources for the audio capture thread.
 */
 
 #include "AudioCaptureThread.h"
+
 #include <iostream>
+
 
 //!************************************************************************
 //! Constructor
@@ -83,11 +85,10 @@ int AudioCaptureThread::exec()
                 {
                     for( int crtChannel = 0; crtChannel < CHANNELS_PER_FRAME; crtChannel++ )
                     {
-                        if( 0 == crtChannel )
-                        {
-                            // skip intentionally
-                            continue;
-                        }
+                        //*///////////////////////////////////////////////////////////////////////////////
+                        // Data belonging to channel=0 is not used but still needs to be sent
+                        // so that the timing for all 16 channels remains aligned.
+                        //*///////////////////////////////////////////////////////////////////////////////
 
                         // EVAL-MICCANVASZ -> numbers [1-15]
                         channelData.channel = crtChannel;
@@ -99,8 +100,8 @@ int AudioCaptureThread::exec()
                         }
 
                         if( FRAMES_PER_PERIOD == channelData.data.size() )
-                        {
-                            emit haveNewAudio( channelData );
+                        {                            
+                            emit haveNewCaptureAudio( channelData );
                         }
                     }
                 }

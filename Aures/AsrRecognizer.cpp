@@ -25,8 +25,6 @@ This file contains the sources for the Automatic Speech Recognition recognizer.
 
 #include "AudioCaptureThread.h"
 
-#include <iostream>
-
 
 //!************************************************************************
 //! Constructor
@@ -37,7 +35,7 @@ AsrRecognizer::AsrRecognizer
     )
     : mLanguage( aLanguage )
     , mAsrModelInstance( AsrModel::getInstance( mLanguage ) )
-    , mRecognizer( nullptr )
+    , mVoskRecognizer( nullptr )
 {
     if( mAsrModelInstance )
     {
@@ -46,13 +44,8 @@ AsrRecognizer::AsrRecognizer
 
         if( asrModel )
         {
-            mRecognizer = vosk_recognizer_new( asrModel, AudioCaptureThread::SAMPLE_RATE );
+            mVoskRecognizer = vosk_recognizer_new( asrModel, AudioCaptureThread::SAMPLE_RATE );
         }
-    }
-
-    if( !mRecognizer )
-    {
-        std::cout << "ERROR: ASR engine could not be created." << std::endl;
     }
 }
 
@@ -62,13 +55,10 @@ AsrRecognizer::AsrRecognizer
 //!************************************************************************
 AsrRecognizer::~AsrRecognizer()
 {
-    if( mRecognizer )
+    if( mVoskRecognizer )
     {
-        std::cout << "Unloading the ASR recognizer..";
-        vosk_recognizer_free( mRecognizer );
-        std::cout << " done." << std::endl << std::flush;
-
-        mRecognizer = nullptr;
+        vosk_recognizer_free( mVoskRecognizer );
+        mVoskRecognizer = nullptr;
 
         if( mAsrModelInstance )
         {
@@ -90,11 +80,78 @@ AsrRecognizer::~AsrRecognizer()
 
 
 //!************************************************************************
-//! Get the ASR recognizer
+//! Get the VOSK ASR recognizer
 //!
-//! @returns the ASR recognizer
+//! @returns the VOSK ASR recognizer
 //!************************************************************************
-VoskRecognizer* AsrRecognizer::getRecognizer()
+VoskRecognizer* AsrRecognizer::getVoskRecognizer()
 {
-    return mRecognizer;
+    return mVoskRecognizer;
+}
+
+
+//!************************************************************************
+//! Set a new recognizer language
+//!
+//! @returns: true if the language can be set
+//!************************************************************************
+bool AsrRecognizer::setLanguage
+    (
+    AsrModel::Language aLanguage    //!< language
+    )
+{
+    bool status = true;
+
+    if( aLanguage != mLanguage )
+    {
+        status = aLanguage < AsrModel::LANGUAGE_COUNT;
+
+        if( status )
+        {
+            if( mVoskRecognizer )
+            {
+                vosk_recognizer_free( mVoskRecognizer );
+                mVoskRecognizer = nullptr;
+
+                if( mAsrModelInstance )
+                {
+                    uint8_t langCtr = mAsrModelInstance->getLanguageCounter( mLanguage );
+
+                    if( langCtr )
+                    {
+                        langCtr = mAsrModelInstance->decLanguageCounter( mLanguage );
+                    }
+
+                    if( 0 == langCtr )
+                    {
+                        mAsrModelInstance->destroyInstance();
+                        mAsrModelInstance = nullptr;
+                    }
+                }
+            }
+
+            status = false;
+            mLanguage = aLanguage;
+            mAsrModelInstance = AsrModel::getInstance( mLanguage );
+
+            if( mAsrModelInstance )
+            {
+                mAsrModelInstance->incLanguageCounter( mLanguage );
+                VoskModel* asrModel = mAsrModelInstance->getModel();
+
+                if( asrModel )
+                {
+                    mVoskRecognizer = vosk_recognizer_new( asrModel, AudioCaptureThread::SAMPLE_RATE );
+
+                    if( mVoskRecognizer )
+                    {
+                        status = true;
+                        emit changedRecognizer();
+                    }
+                }
+            }
+        }
+    }
+
+    return status;
 }

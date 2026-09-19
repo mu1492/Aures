@@ -33,14 +33,23 @@ AsrModel* AsrModel::sInstance = nullptr;
 
 const std::map<AsrModel::Language, std::string> AsrModel::LANGUAGE_NAMES =
 {
+    { LANGUAGE_ARABIC,      "Arabic"     },
     { LANGUAGE_CHINESE,     "Chinese"    },
+    { LANGUAGE_DUTCH,       "Dutch"      },
     { LANGUAGE_ENGLISH,     "English"    },
+    { LANGUAGE_FARSI,       "Farsi"      },
     { LANGUAGE_FRENCH,      "French"     },
     { LANGUAGE_GERMAN,      "German"     },
+    { LANGUAGE_ITALIAN,     "Italian"    },
     { LANGUAGE_JAPANESE,    "Japanese"   },
+    { LANGUAGE_KOREAN,      "Korean"     },
     { LANGUAGE_SPANISH,     "Spanish"    },
     { LANGUAGE_PORTUGUESE,  "Portuguese" }
 };
+
+AsrModel::Language AsrModel::sLanguage = AsrModel::LANGUAGE_ENGLISH;
+VoskModel* AsrModel::sModel = nullptr;
+std::map<AsrModel::Language, uint8_t> AsrModel::sLanguageMap = {};
 
 //!************************************************************************
 //! Constructor
@@ -49,14 +58,13 @@ AsrModel::AsrModel
     (
     Language aLanguage  //!< language model
     )
-    : mLanguage( aLanguage )
-    , mModel( nullptr )
 {
+    sLanguage = aLanguage;
     vosk_set_log_level( -1 );
 
     for( uint8_t i = 0; i < LANGUAGE_COUNT; i++ )
     {
-        mLanguageMap.insert( { static_cast<Language>( i ), 0 } );
+        sLanguageMap.insert( { static_cast<Language>( i ), 0 } );
     }
 
     const char* HOME_PATH = getenv( "HOME" );
@@ -67,14 +75,26 @@ AsrModel::AsrModel
         strcpy( fullPath, HOME_PATH );
     }
 
-    switch( mLanguage )
+    switch( sLanguage )
     {
+        case LANGUAGE_ARABIC:
+            strcat( fullPath, "/vosk_models/vosk-model-ar-mgb2-0.4" );
+            break;
+
         case LANGUAGE_CHINESE:
             strcat( fullPath, "/vosk_models/vosk-model-small-cn-0.22" );
             break;
 
+        case LANGUAGE_DUTCH:
+            strcat( fullPath, "/vosk_models/vosk-model-small-nl-0.22" );
+            break;
+
         case LANGUAGE_ENGLISH:
             strcat( fullPath, "/vosk_models/vosk-model-small-en-us-0.15" );
+            break;
+
+        case LANGUAGE_FARSI:
+            strcat( fullPath, "/vosk_models/vosk-model-small-fa-0.42" );
             break;
 
         case LANGUAGE_FRENCH:
@@ -85,8 +105,16 @@ AsrModel::AsrModel
             strcat( fullPath, "/vosk_models/vosk-model-small-de-0.15" );
             break;
 
+        case LANGUAGE_ITALIAN:
+            strcat( fullPath, "/vosk_models/vosk-model-small-it-0.22" );
+            break;
+
         case LANGUAGE_JAPANESE:
             strcat( fullPath, "/vosk_models/vosk-model-small-ja-0.22" );
+            break;
+
+        case LANGUAGE_KOREAN:
+            strcat( fullPath, "/vosk_models/vosk-model-small-ko-0.22" );
             break;
 
         case LANGUAGE_SPANISH:
@@ -101,7 +129,12 @@ AsrModel::AsrModel
             break;
     }
 
-    mModel = vosk_model_new( fullPath );
+    sModel = vosk_model_new( fullPath );
+
+    if( !sModel )
+    {
+        std::cout << "\nFailed loading the VOSK ASR model for " << LANGUAGE_NAMES.at( sLanguage ) << ".\n" << std::flush;
+    }
 }
 
 
@@ -110,13 +143,10 @@ AsrModel::AsrModel
 //!************************************************************************
 AsrModel::~AsrModel()
 {
-    if( mModel )
+    if( sModel )
     {
-        std::cout << "Unloading the ASR " << LANGUAGE_NAMES.at( mLanguage ) << " language model..";
-        vosk_model_free( mModel );
-        std::cout << " done." << std::endl << std::flush;
-
-        mModel = nullptr;        
+        vosk_model_free( sModel );
+        sModel = nullptr;
     }
 }
 
@@ -131,8 +161,20 @@ AsrModel* AsrModel::getInstance
     Language aLanguage      //!< language model
     )
 {
-    if( !sInstance )
+    if( !sInstance
+     || ( aLanguage != sLanguage ) )
     {
+        if( sModel )
+        {
+            vosk_model_free( sModel );
+            sModel = nullptr;
+
+            if( sLanguageMap[sLanguage] > 0 )
+            {
+                sLanguageMap[sLanguage]--;
+            }
+        }
+
         sInstance = new AsrModel( aLanguage );
     }
 
@@ -150,12 +192,12 @@ uint8_t AsrModel::decLanguageCounter
     const Language aLanguage    //!< language
     )
 {
-    if( mLanguageMap[aLanguage] > 0 )
+    if( sLanguageMap[aLanguage] > 0 )
     {
-        mLanguageMap[aLanguage]--;
+        sLanguageMap[aLanguage]--;
     }
 
-    return mLanguageMap[aLanguage];
+    return sLanguageMap[aLanguage];
 }
 
 
@@ -178,7 +220,7 @@ void AsrModel::destroyInstance()
 //!************************************************************************
 AsrModel::Language AsrModel::getLanguage() const
 {
-    return mLanguage;
+    return sLanguage;
 }
 
 
@@ -192,7 +234,7 @@ uint8_t AsrModel::getLanguageCounter
     Language aLanguage      //!< language model
     ) const
 {
-    return mLanguageMap.at( aLanguage );
+    return sLanguageMap.at( aLanguage );
 }
 
 
@@ -203,7 +245,7 @@ uint8_t AsrModel::getLanguageCounter
 //!************************************************************************
 VoskModel* AsrModel::getModel()
 {
-    return mModel;
+    return sModel;
 }
 
 
@@ -217,10 +259,10 @@ uint8_t AsrModel::incLanguageCounter
     const Language aLanguage    //!< language
     )
 {
-    if( mLanguageMap[aLanguage] < 255 )
+    if( sLanguageMap[aLanguage] < 255 )
     {
-        mLanguageMap[aLanguage]++;
+        sLanguageMap[aLanguage]++;
     }
 
-    return mLanguageMap[aLanguage];
+    return sLanguageMap[aLanguage];
 }

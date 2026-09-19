@@ -28,8 +28,6 @@ This file contains the definitions for the Automatic Speech Recognition handler.
 #include "AsrThread.h"
 #include "AudioChannelData.h"
 
-#include <vector>
-
 #include <QObject>
 #include <QString>
 
@@ -45,29 +43,45 @@ class AsrHandler : public QObject
     // functions
     //************************************************************************
     public:
-        AsrHandler();
+        AsrHandler
+            (
+            int                 aSpeakerId, //!< spreaker ID
+            AsrModel::Language  aLanguage   //!< language
+            );
 
         ~AsrHandler();
 
-        static AsrHandler* getInstance();
+        AsrModel::Language getLanguage() const;
 
-        static void destroyInstance();
+        bool setLanguage
+            (
+            AsrModel::Language aLanguage    //!< language
+            );
 
     private slots:
-        void receiveNewAudio
+        void forwardChangedRecognizer();
+
+        void receiveNewSpeakerAudio
             (
-            AudioChannelData aData      //!< new data
+            AudioChannelData    aData,  //!< new data
+            int                 aIndex  //!< index
             );
 
         void receiveNewString
             (
-            QString aString             //!< nex string
+            QString aString             //!< new string
             );
 
     signals:
+        void changedRecognizer
+            (
+            bool    aStatus             //!< status
+            );
+
         void haveNewString
             (
-            QString aString             //!< extracted string
+            QString aString,            //!< extracted string
+            int     aSpeakerId          //!< speaker ID
             );
 
 
@@ -75,10 +89,10 @@ class AsrHandler : public QObject
     // variables
     //************************************************************************
     private:
-        static AsrHandler*      sInstance;      //!< singleton
-
-        static AsrRecognizer*   sAsrEn;         //!< ASR object - English
-        AsrThread               mAsrThreadEn;   //!< ASR thread - English
+        int                 mSpeakerId;                 //!< speaker ID
+        AsrModel::Language  mLanguage;                  //!< language
+        AsrRecognizer*      mAsrLanguageRecognizer;     //!< ASR object, each handler must own a unique recognizer
+        AsrThread           mAsrThread;                 //!< ASR thread
 };
 
 #endif // AsrHandler_h

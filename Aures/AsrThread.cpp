@@ -34,12 +34,10 @@ AsrThread::AsrThread
     QObject*    aParent     //!< parent object
     )
     : QThread( aParent )
-    , mAsr( nullptr )
-    , mAsrRecognizer( nullptr )
+    , mVoskAsrRecognizer( nullptr )
     , mFrames( 0 )
     , mIsAborting( false )
 {
-    mAsrBuffer.resize( AudioCaptureThread::FRAMES_PER_PERIOD );
 }
 
 
@@ -89,10 +87,11 @@ void AsrThread::feedAudioData
 {
     QMutexLocker locker( &mMutex );
     mFrames = aData.data.size();
+    mAsrBuffer.clear();
 
     for( int i = 0; i < mFrames; i++ )
     {
-        mAsrBuffer.at( i ) = static_cast<int32_t>( aData.data.at( i ) * INT32_MAX ) >> 16;
+        mAsrBuffer.push_back( static_cast<int32_t>( aData.data.at( i ) * INT32_MAX ) >> 16 );
     }
 
     if( !mIsAborting )
@@ -125,15 +124,15 @@ void AsrThread::feedAudioData
         return;
     }
 
-    if( mAsrRecognizer )
+    if( mVoskAsrRecognizer )
     {
-        if( vosk_recognizer_accept_waveform( mAsrRecognizer, ( const char* )bufferData, FRAMES * sizeof( int16_t ) ) )
+        if( vosk_recognizer_accept_waveform( mVoskAsrRecognizer, ( const char* )bufferData, FRAMES * sizeof( int16_t ) ) )
         {
-            extractedStr = extractString( vosk_recognizer_result( mAsrRecognizer ) );
+            extractedStr = extractString( vosk_recognizer_result( mVoskAsrRecognizer ) );
         }
         else
         {
-            extractedStr = extractString( vosk_recognizer_partial_result( mAsrRecognizer ) );
+            extractedStr = extractString( vosk_recognizer_partial_result( mVoskAsrRecognizer ) );
         }
 
         if( extractedStr != oldExtractedStr )
@@ -147,20 +146,19 @@ void AsrThread::feedAudioData
 
 
 //!************************************************************************
-//! Set the ASR object
+//! Set the ASR recognizer
 //!
 //! @returns nothing
 //!************************************************************************
-void AsrThread::setAsr
+void AsrThread::setRecognizer
     (
-    AsrRecognizer*      aAsr    //!< ASR object
+    AsrRecognizer*      aAsrRecognizer  //!< ASR recognizer
     )
 {
     QMutexLocker locker( &mMutex );
 
-    if( aAsr )
+    if( aAsrRecognizer )
     {
-        mAsr = aAsr;
-        mAsrRecognizer = mAsr->getRecognizer();
+        mVoskAsrRecognizer = aAsrRecognizer->getVoskRecognizer();
     }
 }

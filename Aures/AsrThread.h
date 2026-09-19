@@ -59,9 +59,9 @@ class AsrThread : public QThread
             AudioChannelData    aData   //!< audio data
             );
 
-        void setAsr
+        void setRecognizer
             (
-            AsrRecognizer*      aAsr    //!< ASR object
+            AsrRecognizer*      aAsrRecognizer  //!< ASR recognizer
             );
 
     protected:
@@ -84,14 +84,13 @@ class AsrThread : public QThread
     // variables
     //************************************************************************
     private:
-        QMutex                  mMutex;         //!< mutex
+        QMutex                  mMutex;             //!< mutex
 
-        AsrRecognizer*          mAsr;           //!< ASR object
-        VoskRecognizer*         mAsrRecognizer; //!< ASR recognizer engine
-        int                     mFrames;        //!< number of frames
-        std::vector<int16_t>    mAsrBuffer;     //!< data buffer
+        VoskRecognizer*         mVoskAsrRecognizer; //!< VOSK ASR recognizer engine
+        int                     mFrames;            //!< number of frames
+        std::vector<int16_t>    mAsrBuffer;         //!< data buffer
 
-        bool                    mIsAborting;    //!< true if aborting
+        bool                    mIsAborting;        //!< true if aborting
 };
 
 #endif // AsrThread_h

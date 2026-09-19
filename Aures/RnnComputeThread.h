@@ -16,25 +16,30 @@
 ///////////////////////////////////////////////////////////////////////////////////
 
 /*
-AsrRecognizer.h
+RnnComputeThread.h
 
-This file contains the definitions for the Automatic Speech Recognition recognizer.
+This file contains the definitions for the Rnn matrix compute thread.
 */
 
-#ifndef AsrRecognizer_h
-#define AsrRecognizer_h
 
-#include "vosk_api.h"
+#ifndef RnnComputeThread_h
+#define RnnComputeThread_h
 
-#include "AsrModel.h"
+#include "Numeric.h"
 
-#include <QObject>
+#include <QMutex>
+#include <QThread>
+#include <QWaitCondition>
+
+#include <cstdint>
+#include <deque>
+#include <vector>
 
 
 //************************************************************************
-// Class for handling the Automatic Speech Recognition recognizer
+// Class for handling the Rnn matrix calculation thread
 //************************************************************************
-class AsrRecognizer : public QObject
+class RnnComputeThread : public QThread
 {
     Q_OBJECT
 
@@ -42,31 +47,41 @@ class AsrRecognizer : public QObject
     // functions
     //************************************************************************
     public:
-        AsrRecognizer
+        RnnComputeThread
             (
-            AsrModel::Language aLanguage    //!< model language
+            QObject* aParent = nullptr              //!< parent object
             );
 
-        ~AsrRecognizer();
+        ~RnnComputeThread();
 
-        VoskRecognizer* getVoskRecognizer();
-
-        bool setLanguage
+        void compute
             (
-            AsrModel::Language aLanguage    //!< language
+            std::vector<std::vector<std::deque<cdouble>>>   aNoiseDataMatrix,   //!< noise data matrix
+            uint32_t                                        aFftSize            //!< FFT size
             );
+
+    protected:
+        void run() override;
 
     signals:
-        void changedRecognizer();
+        void rnnComputeDone
+            (
+            const Cx3Matrix& aRnnMatrix    //!< Rnn matrix
+            );
 
 
     //************************************************************************
     // variables
     //************************************************************************
     private:
-        AsrModel::Language  mLanguage;          //!< language
-        AsrModel*           mAsrModelInstance;  //!< ASR model instance
-        VoskRecognizer*     mVoskRecognizer;    //!< VOSK ASR recognizer
+        QMutex                      mMutex;         //!< mutex
+        QWaitCondition              mWaitCondition; //!< wait condition
+
+        std::vector<std::vector<std::deque<cdouble>>>   mNoiseDataMatrix;   //!< noise data matrix
+        uint32_t                    mFftSize;       //!< FFT size
+
+        bool                        mIsComputing;   //!< true if currently computing
+        bool                        mIsAborting;    //!< true if aborting
 };
 
-#endif // AsrRecognizer_h
+#endif // RnnComputeThread_h

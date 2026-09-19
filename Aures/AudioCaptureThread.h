@@ -85,7 +85,7 @@ class AudioCaptureThread : public QThread
         int exec();
 
     signals:
-        void haveNewAudio
+        void haveNewCaptureAudio
             (
             AudioChannelData aData      //!< new data
             );      

@@ -16,126 +16,112 @@
 ///////////////////////////////////////////////////////////////////////////////////
 
 /*
-AsrHandler.cpp
+VoiceActivityDetection.cpp
 
-This file contains the sources for the Automatic Speech Recognition handler.
+This file contains the sources for the VAD (voice activity detection).
 */
 
-#include "AsrHandler.h"
+#include "VoiceActivityDetection.h"
+
+#include <iostream>
 
 
 //!************************************************************************
 //! Constructor
 //!************************************************************************
-AsrHandler::AsrHandler
+VoiceActivityDetection::VoiceActivityDetection
     (
-    int                 aSpeakerId, //!< spreaker ID
-    AsrModel::Language  aLanguage   //!< language
+    QObject* aParent    //!< parent object
     )
-    : mSpeakerId( aSpeakerId )
-    , mLanguage( aLanguage )
-    , mAsrLanguageRecognizer( new AsrRecognizer( mLanguage ) )
+    : QObject( aParent )
+    , mSource( SOURCE_UNKNOWN )
+    , mIndex( 0 )
+    , mIsVoice( false )
 {
-    if( mAsrLanguageRecognizer )
-    {
-        mAsrThread.setRecognizer( mAsrLanguageRecognizer );
-        connect( &mAsrThread, &AsrThread::haveNewString, this, &AsrHandler::receiveNewString );
-
-        connect( mAsrLanguageRecognizer, SIGNAL( changedRecognizer() ), this, SLOT( forwardChangedRecognizer() ) );
-    }
 }
 
 
 //!************************************************************************
-//! Destructor
-//!************************************************************************
-AsrHandler::~AsrHandler()
-{
-    if( mAsrThread.isRunning() )
-    {
-        mAsrThread.quit();
-        mAsrThread.wait();
-    }
-
-    if( mAsrLanguageRecognizer )
-    {
-        delete mAsrLanguageRecognizer;
-        mAsrLanguageRecognizer = nullptr;
-    }
-}
-
-
-//!************************************************************************
-//! Get the recognizer language
+//! Get the VAD object index
 //!
-//! @returns: the recognizer language
+//! @returns the index
 //!************************************************************************
-AsrModel::Language AsrHandler::getLanguage() const
+int VoiceActivityDetection::getIndex() const
 {
-    return mLanguage;
+    return mIndex;
 }
 
 
 //!************************************************************************
-//! Forward the changedRecognizer() signal
+//! Get the voice presence status
 //!
-//! @returns: nothing
+//! @returns true if voice is detected
 //!************************************************************************
-/* slot */ void AsrHandler::forwardChangedRecognizer()
+bool VoiceActivityDetection::getIsVoice() const
 {
-    emit changedRecognizer( true );
+    return mIsVoice;
 }
 
 
 //!************************************************************************
-//! Receive new audio data for a speaker
+//! Get the VAD object source type
 //!
-//! @returns: nothing
+//! @returns the source type
 //!************************************************************************
-/* slot */ void AsrHandler::receiveNewSpeakerAudio
+VoiceActivityDetection::Source VoiceActivityDetection::getSource() const
+{
+    return mSource;
+}
+
+
+//!************************************************************************
+//! Set the VAD object index
+//! Multiple VAD objects may have the same index and different source
+//! types.  Proper identification should be done using both parameters.
+//!
+//! @returns nothing
+//!************************************************************************
+void VoiceActivityDetection::setIndex
     (
-    AudioChannelData    aData,  //!< new data
-    int                 aIndex  //!< index
-    )
-{   
-    if( mSpeakerId == aIndex )
-    {
-        mAsrThread.feedAudioData( aData );
-    }
-}
-
-
-//!************************************************************************
-//! Receive new string from ASR thread
-//!
-//! @returns: nothing
-//!************************************************************************
-/* slot */ void AsrHandler::receiveNewString
-    (
-    QString aString             //!< new string
+    int aIndex        //!< index
     )
 {
-    emit haveNewString( aString, mSpeakerId );
+    mIndex = aIndex;
 }
 
 
 //!************************************************************************
-//! Set a new recognizer language
+//! Set whether voice is detected or not
 //!
-//! @returns: true if the language can be set
+//! @returns nothing
 //!************************************************************************
-bool AsrHandler::setLanguage
+void VoiceActivityDetection::setIsVoice
     (
-    AsrModel::Language aLanguage    //!< language
+    bool aIsVoice     //!< true if voice is detected
     )
 {
-    bool status = mAsrLanguageRecognizer->setLanguage( aLanguage );
-
-    if( status )
+    if( aIsVoice != mIsVoice )
     {
-        mLanguage = aLanguage;
-        mAsrThread.setRecognizer( mAsrLanguageRecognizer );
+        mIsVoice = aIsVoice;
+        emit haveVoiceDetectionChanged( mIsVoice, mIndex, mSource );
     }
+}
 
-    return status;
+
+//!************************************************************************
+//! Set the VAD object source type
+//! Multiple VAD objects may have the same source type and different
+//! indexes.  Proper identification should be done using both parameters.
+//!
+//! @returns nothing
+//!************************************************************************
+void VoiceActivityDetection::setSource
+    (
+    Source aSource    //!< source
+    )
+{
+    if( aSource < SOURCE_MAX_COUNT )
+    {
+        mSource = aSource;
+    }
 }

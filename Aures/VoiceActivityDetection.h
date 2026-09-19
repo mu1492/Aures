@@ -16,57 +16,91 @@
 ///////////////////////////////////////////////////////////////////////////////////
 
 /*
-AsrRecognizer.h
+VoiceActivityDetection.h
 
-This file contains the definitions for the Automatic Speech Recognition recognizer.
+This file contains the definitions for the VAD (voice activity detection).
 */
 
-#ifndef AsrRecognizer_h
-#define AsrRecognizer_h
+#ifndef VoiceActivityDetection_h
+#define VoiceActivityDetection_h
 
-#include "vosk_api.h"
+#include <cstdint>
 
-#include "AsrModel.h"
-
+#include <QMetaType>
 #include <QObject>
 
 
 //************************************************************************
-// Class for handling the Automatic Speech Recognition recognizer
+// Class for handling the VAD (voice activity detection)
 //************************************************************************
-class AsrRecognizer : public QObject
+class VoiceActivityDetection : public QObject
 {
     Q_OBJECT
+
+    //************************************************************************
+    // constants and types
+    //************************************************************************
+    public:
+        typedef enum : uint8_t
+        {
+            SOURCE_UNKNOWN,
+            SOURCE_MICROPHONE,
+            SOURCE_DIRECTION,
+            SOURCE_SPEAKER,
+
+            // keep this last
+            SOURCE_MAX_COUNT
+        }Source;
+
 
     //************************************************************************
     // functions
     //************************************************************************
     public:
-        AsrRecognizer
+        explicit VoiceActivityDetection
             (
-            AsrModel::Language aLanguage    //!< model language
+            QObject* aParent = nullptr  //!< parent object
             );
 
-        ~AsrRecognizer();
+        int getIndex() const;
 
-        VoskRecognizer* getVoskRecognizer();
+        bool getIsVoice() const;
 
-        bool setLanguage
+        Source getSource() const;
+
+        void setIndex
             (
-            AsrModel::Language aLanguage    //!< language
+            int aIndex          //!< index
+            );
+
+        void setIsVoice
+            (
+            bool aIsVoice       //!< true if voice is detected
+            );
+
+        void setSource
+            (
+            Source aSource      //!< source
             );
 
     signals:
-        void changedRecognizer();
+        void haveVoiceDetectionChanged
+            (
+            bool    aIsVoice,       //!< true if voice is detected
+            int     aIndex,         //!< index
+            Source  aSource         //!< source
+            );
 
 
     //************************************************************************
     // variables
     //************************************************************************
     private:
-        AsrModel::Language  mLanguage;          //!< language
-        AsrModel*           mAsrModelInstance;  //!< ASR model instance
-        VoskRecognizer*     mVoskRecognizer;    //!< VOSK ASR recognizer
+        Source  mSource;        //!< voice source
+        int     mIndex;         //!< voice-associated index (mic / direction / speaker)
+        bool    mIsVoice;       //!< true if voice is detected
 };
 
-#endif // AsrRecognizer_h
+Q_DECLARE_METATYPE( VoiceActivityDetection::Source )
+
+#endif // VoiceActivityDetection_h

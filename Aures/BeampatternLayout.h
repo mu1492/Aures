@@ -16,57 +16,65 @@
 ///////////////////////////////////////////////////////////////////////////////////
 
 /*
-AsrRecognizer.h
+BeampatternLayout.h
 
-This file contains the definitions for the Automatic Speech Recognition recognizer.
+This file contains the definitions for the beampattern layout.
 */
 
-#ifndef AsrRecognizer_h
-#define AsrRecognizer_h
+#ifndef BeampatternLayout_h
+#define BeampatternLayout_h
 
-#include "vosk_api.h"
+#include "Numeric.h"
 
-#include "AsrModel.h"
+#include <cstdint>
 
-#include <QObject>
+#include <QDial>
 
 
 //************************************************************************
-// Class for handling the Automatic Speech Recognition recognizer
+// Class for handling the beampattern layout
 //************************************************************************
-class AsrRecognizer : public QObject
-{
+class BeampatternLayout : public QDial
+{       
     Q_OBJECT
 
     //************************************************************************
-    // functions
+    // constants and types
     //************************************************************************
     public:
-        AsrRecognizer
+        explicit BeampatternLayout
             (
-            AsrModel::Language aLanguage    //!< model language
+            QWidget*    aParent = nullptr    //!< parent widget
             );
 
-        ~AsrRecognizer();
-
-        VoskRecognizer* getVoskRecognizer();
-
-        bool setLanguage
+        void setShowSpeakers
             (
-            AsrModel::Language aLanguage    //!< language
+            const bool      aEnabled,               //!< state
+            const double    aFirstSpeakerAngleDeg,  //!< angle [deg]
+            const uint8_t   aNrOfSpeakers           //!< number of speakers
             );
 
-    signals:
-        void changedRecognizer();
+        void updateBeampatternPlot
+            (
+            CxVector    aVector   //!< beampattern values
+            );
+
+    protected:
+        void paintEvent
+            (
+            QPaintEvent*    aEvent  //!< paint event
+            ) override;
 
 
     //************************************************************************
     // variables
     //************************************************************************
     private:
-        AsrModel::Language  mLanguage;          //!< language
-        AsrModel*           mAsrModelInstance;  //!< ASR model instance
-        VoskRecognizer*     mVoskRecognizer;    //!< VOSK ASR recognizer
+        std::vector<double> mBeampatternMagDbVec;   //!< beampattern magnitudes [dB]
+
+        bool                mShowSpeakers;          //!< true if showing speaker directions
+        double              mFirstSpeakerAngleDeg;  //!< 1st speaker angle [deg]
+        uint8_t             mNrOfSpeakers;          //!< number of speakers
 };
 
-#endif // AsrRecognizer_h
+#endif // BeampatternLayout_h
